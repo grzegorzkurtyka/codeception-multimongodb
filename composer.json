@@ -1,0 +1,16 @@
+{
+    "name": "grzegorzkurtyka/codeception-multimongodb",
+    "description": "Codeception module for multiple MongoDb databases",
+    "authors": [
+        {
+            "name": "Grzegorz Kurtyka",
+            "email": "grzegorz.kurtyka@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Codeception\\Module\\": "src"
+        }
+    }
+}
+

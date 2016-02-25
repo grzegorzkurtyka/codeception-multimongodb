@@ -185,7 +185,9 @@ class MultiMongoDb extends \Codeception\Module
     }
     
     protected function checkDatabase($dbName) {
-        throw new \Codeception\Exception\Module(__CLASS__, "No database '$dbName' configured");
+        if (!isset($this->drivers[$dbName])) {
+            throw new \Codeception\Exception\ModuleConfigException(__CLASS__, "No database '$dbName' configured");
+        }
     }
 
     /**
@@ -203,7 +205,7 @@ class MultiMongoDb extends \Codeception\Module
      */
     public function haveInDatabaseCollection($database, $collection, array $data)
     {
-        $this->checkDatabase($dbName);
+        $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
         $collection->insert($data);
         return $data['_id'];
@@ -223,7 +225,7 @@ class MultiMongoDb extends \Codeception\Module
      */
     public function seeInDatabaseCollection($database, $collection, $criteria = array())
     {
-        $this->checkDatabase($dbName);
+        $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
         $res = $collection->count($criteria);
         \PHPUnit_Framework_Assert::assertGreaterThan(0, $res);
@@ -243,7 +245,7 @@ class MultiMongoDb extends \Codeception\Module
      */
     public function dontSeeInDatabaseCollection($database, $collection, $criteria = array())
     {
-        $this->checkDatabase($dbName);
+        $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
         $res = $collection->count($criteria);
         \PHPUnit_Framework_Assert::assertLessThan(1, $res);
@@ -263,7 +265,7 @@ class MultiMongoDb extends \Codeception\Module
      * @return \MongoCursor
      */
     public function grabFromDatabaseCollection($database, $collection, $criteria = array()) {
-        $this->checkDatabase($dbName);
+        $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
         return $collection->findOne($criteria);
     }

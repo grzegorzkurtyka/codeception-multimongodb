@@ -211,6 +211,27 @@ class MultiMongoDb extends \Codeception\Module
         return $data['_id'];
     }
 
+
+    /**
+     * Updates data into collection
+     *
+     * ``` php
+     * $I->updateInDatabaseCollection('database', 'users', array('_id' => 'mongoID'), array('name' => 'John', 'email' => 'john@coltrane.com'));
+     * ```
+     *
+     * @param       $database
+     * @param       $collection
+     * @param array $criteria
+     * @param array $data
+     * @return
+     */
+    public function updateInDatabaseCollection($database, $collection, array $criteria, array $data)
+    {
+        $this->checkDatabase($database);
+        $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
+        return $collection->update($criteria, $data);
+    }
+    
     /**
      * Checks if collection contains an item.
      *

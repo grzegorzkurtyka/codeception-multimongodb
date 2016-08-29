@@ -211,6 +211,25 @@ class MultiMongoDb extends \Codeception\Module
         return $data['_id'];
     }
 
+    /**
+     * Inserts data into collection
+     *
+     * ``` php
+     * $I->haveInDatabaseCollection('database', 'users', array('name' => 'John', 'email' => 'john@coltrane.com'));
+     * $user_id = $I->haveInCollection('users', array('email' => 'john@coltrane.com'));
+     * ```
+     *
+     * @param       $database
+     * @param       $collection
+     * @param array $data
+     * @return
+     */
+    public function dontHaveInDatabaseCollection($database, $collection, array $criteria)
+    {
+        $this->checkDatabase($database);
+        $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
+        return $collection->remove($criteria);
+    }
 
     /**
      * Updates data into collection

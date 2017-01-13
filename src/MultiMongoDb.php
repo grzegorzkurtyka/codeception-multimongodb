@@ -54,8 +54,12 @@ namespace Codeception\Module;
  *
  */
 
+use Codeception\Exception\ModuleConfigException;
+use Codeception\Exception\ModuleException;
 use \Codeception\Lib\Driver\MongoDb as MongoDbDriver;
 use Codeception\Configuration as Configuration;
+use Codeception\TestInterface;
+use Codeception\Util\Debug;
 
 class MultiMongoDb extends \Codeception\Module
 {
@@ -91,7 +95,7 @@ class MultiMongoDb extends \Codeception\Module
             foreach($dbs as $dbName => $db) {
                 $this->setupDriver($dbName, $db);
             }
-        } else if (isset($this->config['dsn'])) {
+            } else if (isset($this->config['dsn'])) {
             $dbConfig = [
                 'dsn' => $this->config['dsn'],
                 'dump' => $this->config['dump'],
@@ -100,7 +104,7 @@ class MultiMongoDb extends \Codeception\Module
                 'user' => $this->config['user'],
                 'password' => $this->config['password'],
             ];
-            $this->setupDriver('default', $db);
+            $this->setupDriver('default', $dbConfig);
         }
     }
     
@@ -109,7 +113,7 @@ class MultiMongoDb extends \Codeception\Module
         if (!empty($config['dump']) && (isset($config['cleanup']) or isset($config['populate']))) {
 
             if (!file_exists(Configuration::projectDir() . $config['dump'])) {
-                throw new \Codeception\Exception\ModuleConfig(__CLASS__, "
+                throw new ModuleConfigException(__CLASS__, "
                     File with dump doesn't exist.\n
                     Please, check path for dump file: " . $config['dump']);
             }
@@ -126,10 +130,10 @@ class MultiMongoDb extends \Codeception\Module
             $this->drivers[$dbName] = MongoDbDriver::create($config['dsn'], $config['user'], $config['password']);
 
         } catch (\MongoConnectionException $e) {
-            throw new \Codeception\Exception\Module(__CLASS__, $e->getMessage() . ' while creating Mongo connection');
+            throw new ModuleException(__CLASS__, $e->getMessage() . ' while creating Mongo connection');
         }
 
-        $populate = !isset($config['populate']) || (isset($config['populate']) && $config['populate'] == false);
+        $populate = !isset($config['populate']) || (isset($config['populate']) && $config['populate'] == true);
         // starting with loading dump
         if ($populate) {
             $this->cleanup($dbName);
@@ -138,7 +142,7 @@ class MultiMongoDb extends \Codeception\Module
         }
     }
 
-    public function _before(\Codeception\TestCase $test)
+    public function _before(TestInterface $test)
     {
 
         foreach($this->drivers as $dbName => $dbh) {
@@ -149,7 +153,7 @@ class MultiMongoDb extends \Codeception\Module
         }
     }
 
-    public function _after(\Codeception\TestCase $test)
+    public function _after(TestInterface $test)
     {
         foreach($this->drivers as $dbName => $dbh) {
             $this->populated[$dbName] = false;
@@ -161,13 +165,13 @@ class MultiMongoDb extends \Codeception\Module
 
         $dbh = $this->drivers[$dbName]->getDbh();
         if (!$dbh) {
-            throw new \Codeception\Exception\ModuleConfig(__CLASS__, "No connection to database. Remove this module from config if you don't need database repopulation");
+            throw new ModuleConfigException(__CLASS__, "No connection to database. Remove this module from config if you don't need database repopulation");
         }
         try {
             $this->drivers[$dbName]->cleanup();
 
         } catch (\Exception $e) {
-            throw new \Codeception\Exception\Module(__CLASS__, $e->getMessage());
+            throw new ModuleException(__CLASS__, $e->getMessage());
         }
     }
 
@@ -177,16 +181,16 @@ class MultiMongoDb extends \Codeception\Module
             return;
         }
         try {
-            \Codeception\Util\Debug::debug("Loading dump for $dbName < {$this->dumpFiles[$dbName]}");
+            Debug::debug("Loading dump for $dbName < {$this->dumpFiles[$dbName]}");
             $this->drivers[$dbName]->load($this->dumpFiles[$dbName]);
         } catch (\Exception $e) {
-            throw new \Codeception\Exception\Module(__CLASS__, $e->getMessage());
+            throw new ModuleException(__CLASS__, $e->getMessage());
         }
     }
     
     protected function checkDatabase($dbName) {
         if (!isset($this->drivers[$dbName])) {
-            throw new \Codeception\Exception\ModuleConfigException(__CLASS__, "No database '$dbName' configured");
+            throw new ModuleConfigException(__CLASS__, "No database '$dbName' configured");
         }
     }
 
@@ -219,10 +223,11 @@ class MultiMongoDb extends \Codeception\Module
      * $user_id = $I->haveInCollection('users', array('email' => 'john@coltrane.com'));
      * ```
      *
-     * @param       $database
-     * @param       $collection
-     * @param array $data
-     * @return
+     * @param $database
+     * @param $collection
+     * @param array $criteria
+     * @internal param array $data
+     * @return mixed
      */
     public function dontHaveInDatabaseCollection($database, $collection, array $criteria)
     {
@@ -299,15 +304,42 @@ class MultiMongoDb extends \Codeception\Module
      * $cursor = $I->grabFromDatabaseCollection('database', 'users', array('name' => 'miles'));
      * ```
      *
-     * @param       $database
-     * @param       $collection
+     * @param $database
+     * @param $collection
      * @param array $criteria
+     * @param array $fields
      * @return \MongoCursor
      */
-    public function grabFromDatabaseCollection($database, $collection, $criteria = array()) {
+    public function grabFromDatabaseCollection($database, $collection, $criteria = array(), $fields = array()) {
         $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        return $collection->findOne($criteria);
+        /**
+         * @var \MongoCollection $collection
+         */
+        return $collection->findOne($criteria, $fields);
+    }
+
+    /**
+     * Grabs multiple documents from collection
+     *
+     * ``` php
+     * <?php
+     * $cursor = $I->grabManyFromDatabaseCollection('database', 'users', array('name' => 'miles'));
+     * ```
+     *
+     * @param $database
+     * @param $collection
+     * @param array $criteria
+     * @param array $fields
+     * @return \MongoCursor
+     */
+    public function grabManyFromDatabaseCollection($database, $collection, $criteria = array(), $fields = array()) {
+        $this->checkDatabase($database);
+        $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
+        /**
+         * @var \MongoCollection $collection
+         */
+        return $collection->find($criteria, $fields);
     }
 
 }

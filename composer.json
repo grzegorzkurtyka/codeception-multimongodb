@@ -11,6 +11,9 @@
         "psr-4": {
             "Codeception\\Module\\": "src"
         }
+    },
+    "require": {
+        "mongodb/mongodb": "^1.4"
     }
 }
 

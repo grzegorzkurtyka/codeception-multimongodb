@@ -107,7 +107,7 @@ class MultiMongoDb extends \Codeception\Module
             $this->setupDriver('default', $dbConfig);
         }
     }
-    
+
     protected function setupDriver($dbName, $config) {
 
         if (!empty($config['dump']) && (isset($config['cleanup']) or isset($config['populate']))) {
@@ -187,7 +187,7 @@ class MultiMongoDb extends \Codeception\Module
             throw new ModuleException(__CLASS__, $e->getMessage());
         }
     }
-    
+
     protected function checkDatabase($dbName) {
         if (!isset($this->drivers[$dbName])) {
             throw new ModuleConfigException(__CLASS__, "No database '$dbName' configured");
@@ -210,8 +210,9 @@ class MultiMongoDb extends \Codeception\Module
     public function haveInDatabaseCollection($database, $collection, array $data)
     {
         $this->checkDatabase($database);
+        /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        $collection->insert($data);
+        $collection->insertOne($data);
         return $data['_id'];
     }
 
@@ -232,8 +233,9 @@ class MultiMongoDb extends \Codeception\Module
     public function dontHaveInDatabaseCollection($database, $collection, array $criteria)
     {
         $this->checkDatabase($database);
+        /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        return $collection->remove($criteria);
+        return $collection->deleteOne($criteria);
     }
 
     /**
@@ -252,10 +254,12 @@ class MultiMongoDb extends \Codeception\Module
     public function updateInDatabaseCollection($database, $collection, array $criteria, array $data)
     {
         $this->checkDatabase($database);
+
+        /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        return $collection->update($criteria, $data);
+        return $collection->updateOne($criteria, ['$set' => $data]);
     }
-    
+
     /**
      * Checks if collection contains an item.
      *
@@ -271,8 +275,9 @@ class MultiMongoDb extends \Codeception\Module
     public function seeInDatabaseCollection($database, $collection, $criteria = array())
     {
         $this->checkDatabase($database);
+        /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        $res = $collection->count($criteria);
+        $res = $collection->countDocuments($criteria);
         \PHPUnit_Framework_Assert::assertGreaterThan(0, $res);
     }
 
@@ -291,8 +296,9 @@ class MultiMongoDb extends \Codeception\Module
     public function dontSeeInDatabaseCollection($database, $collection, $criteria = array())
     {
         $this->checkDatabase($database);
+        /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        $res = $collection->count($criteria);
+        $res = $collection->countDocuments($criteria);
         \PHPUnit_Framework_Assert::assertLessThan(1, $res);
     }
 
@@ -308,15 +314,13 @@ class MultiMongoDb extends \Codeception\Module
      * @param $collection
      * @param array $criteria
      * @param array $fields
-     * @return \MongoCursor
+     * @return \MongoDB\Driver\Cursor
      */
     public function grabFromDatabaseCollection($database, $collection, $criteria = array(), $fields = array()) {
         $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        /**
-         * @var \MongoCollection $collection
-         */
-        return $collection->findOne($criteria, $fields);
+        /** @var \MongoDB\Collection $collection */
+        return $collection->find($criteria, ['projection' => $fields]);
     }
 
     /**
@@ -331,15 +335,13 @@ class MultiMongoDb extends \Codeception\Module
      * @param $collection
      * @param array $criteria
      * @param array $fields
-     * @return \MongoCursor
+     * @return \MongoDB\Driver\Cursor
      */
     public function grabManyFromDatabaseCollection($database, $collection, $criteria = array(), $fields = array()) {
         $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        /**
-         * @var \MongoCollection $collection
-         */
-        return $collection->find($criteria, $fields);
+        /** @var \MongoDB\Collection $collection */
+        return $collection->find($criteria, ['projection' => $fields]);
     }
 
 }

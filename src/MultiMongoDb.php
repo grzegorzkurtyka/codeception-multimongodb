@@ -205,15 +205,15 @@ class MultiMongoDb extends \Codeception\Module
      * @param       $database
      * @param       $collection
      * @param array $data
-     * @return
+     * @return mixed
      */
     public function haveInDatabaseCollection($database, $collection, array $data)
     {
         $this->checkDatabase($database);
         /** @var \MongoDB\Collection $collection */
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
-        $collection->insertOne($data);
-        return $data['_id'];
+        $result = $collection->insertOne($data);
+        return $result->getInsertedId();
     }
 
     /**

@@ -320,7 +320,7 @@ class MultiMongoDb extends \Codeception\Module
         $this->checkDatabase($database);
         $collection = $this->drivers[$database]->getDbh()->selectCollection($collection);
         /** @var \MongoDB\Collection $collection */
-        return $collection->find($criteria, ['projection' => $fields]);
+        return $collection->findOne($criteria, ['projection' => $fields]);
     }
 
     /**
